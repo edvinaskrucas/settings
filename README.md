@@ -1,4 +1,4 @@
-# Persistent Settings for Laravel
+# Persistent Settings for Laravel 5
 
 [![Build Status](https://travis-ci.org/edvinaskrucas/settings.png?branch=master)](https://travis-ci.org/edvinaskrucas/settings)
 
@@ -77,7 +77,7 @@ Settings::set($key, $value = null);
 Get setting value, default value is returned when no value found.
 
 ```php
-Settings:get($key, $default = null);
+Settings::get($key, $default = null);
 ```
 
 #### Check value
