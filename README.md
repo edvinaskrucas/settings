@@ -64,6 +64,14 @@ Package comes with several configuration options.
 | ```repositories``` | Config of all repositories which can be used. |
 | ```override``` | Allows you to override values in Laravel config array. |
 
+### Creating table for database driver
+
+To use database driver you have to create table in your database.
+Package provides default table migration, to create it you need to execute artisan command:
+```
+$ php artisan settings:table
+```
+
 ### Methods
 
 #### Set value
