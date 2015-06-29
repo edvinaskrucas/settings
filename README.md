@@ -54,13 +54,15 @@ If you want to edit default config file, just publish it to your app folder.
 
 Package comes with several configuration options.
 
-* driver: setting repository driver
-* cache: enable or disable setting cache
-* prefix: cache key prefix
-* encryption: enable or disable setting value encryption
-* events: enable or disable event firing
-* repositories: config of all repositories which can be used
-* override: allows you to override values in Laravel config array
+| Setting | Description |
+| --- | --- |
+| ```driver``` | Setting repository driver. |
+| ```cache``` | Enable or disable setting cache. |
+| ```prefix``` | Cache key prefix. |
+| ```encryption``` | Enable or disable setting value encryption. |
+| ```events``` | Enable or disable event firing. |
+| ```repositories``` | Config of all repositories which can be used. |
+| ```override``` | Allows you to override values in Laravel config array. |
 
 ### Methods
 
