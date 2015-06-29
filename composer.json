@@ -22,7 +22,10 @@
   "autoload": {
     "psr-0": {
       "Krucas\\Settings\\": "src/"
-    }
+    },
+    "files": [
+      "src/helpers.php"
+    ]
   },
   "minimum-stability": "dev"
 }
