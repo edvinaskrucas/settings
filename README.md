@@ -46,7 +46,7 @@ Alias array
 
 If you want to edit default config file, just publish it to your app folder.
 
-    php artisan vendor:publish --provider="Krucas\Settings" --tag="config"
+    php artisan vendor:publish --provider="Krucas\Settings\Providers\SettingsServiceProvider" --tag="config"
 
 ## Usage
 
