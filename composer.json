@@ -1,0 +1,28 @@
+{
+  "name": "edvinaskrucas/settings",
+  "keywords": ["settings", "persistent settings", "laravel"],
+  "description": "Persistent settings package for Laravel framework.",
+  "authors": [
+    {
+      "name": "Edvinas Kručas",
+      "email": "edv.krucas@gmail.com"
+    }
+  ],
+  "license": "MIT",
+  "require": {
+    "php": ">=5.3.0",
+    "illuminate/support": "5.*",
+    "illuminate/console": "5.*",
+    "illuminate/database": "5.*",
+    "illuminate/filesystem": "5.*"
+  },
+  "require-dev": {
+    "mockery/mockery": "0.9.*"
+  },
+  "autoload": {
+    "psr-0": {
+      "Krucas\\Settings\\": "src/"
+    }
+  },
+  "minimum-stability": "dev"
+}
