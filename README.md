@@ -14,6 +14,7 @@ Persistent settings package for Laravel 5.
 * Fire events after action
 * Override config values
 * Helper function
+* Settings by context
 
 ---
 
@@ -23,7 +24,7 @@ Require this package in your composer.json:
 
 ```
 "require": {
-  "edvinaskrucas/settings": "1.0.0"
+  "edvinaskrucas/settings": "1.1.0"
 }
 ```
 
@@ -34,7 +35,7 @@ Add following lines to ```app/config/app.php```
 ServiceProvider array
 
 ```php
-'Krucas\Settings\Providers\SettingsServiceProvider'
+Krucas\Settings\Providers\SettingsServiceProvider::class,
 ```
 
 Alias array
@@ -56,12 +57,13 @@ Package comes with several configuration options.
 
 | Setting | Description |
 | --- | --- |
-| ```driver``` | Setting repository driver. |
+| ```default``` | Setting repository driver. |
 | ```cache``` | Enable or disable setting cache. |
-| ```prefix``` | Cache key prefix. |
 | ```encryption``` | Enable or disable setting value encryption. |
 | ```events``` | Enable or disable event firing. |
 | ```repositories``` | Config of all repositories which can be used. |
+| ```key_generator``` | Key generator class. |
+| ```context_serializer``` | Context serializer class. |
 | ```override``` | Allows you to override values in Laravel config array. |
 
 ### Creating table for database driver
@@ -106,6 +108,28 @@ Forget setting value from repository.
 Settings::forget($key);
 ```
 
+#### Set context
+
+Setting values may be used in certain context. Context can be set using method ```context()```.
+
+```php
+Settings::context(new Context(['user' => 1]));
+```
+
+Context is reset after call of one these methods ```set```, ```get```, ```has```, ```forget```.
+Example how to use settings for different contexts.
+
+```php
+$userContext1 = new Context(['user' => 1]);
+$userContext2 = new Context(['user' => 2]);
+Settings::context($userContext1)->set('key', 'value1');
+Settings::context($userContext2)->set('key', 'value2');
+
+// retrieve settings
+$userValue1 = Settings::context($userContext1)->get('key'); // value1
+$userValue2 = Settings::context($userContext2)->get('key'); // value2
+```
+
 ### Helpers
 
 #### Settings service instance
@@ -124,12 +148,24 @@ Set setting value.
 settings([$key => $value]);
 ```
 
+Set setting value for a context.
+
+```php
+settings([$key => $value], new Context(['user' => 1]));
+```
+
 #### Get value
 
 Get setting value, default value is returned when no value found.
 
 ```php
 settings($key, $default = null);
+```
+
+Getting value for a context.
+
+```php
+settings($key, $default, new Context(['user' => 1]));
 ```
 
 ### Events
@@ -143,6 +179,7 @@ Fired before checking if value is present in repository.
 | Parameter | Type | Parameter description |
 | --- | --- | --- |
 | $key | string | Setting key. |
+| $context | null or Context | Setting context. |
 
 #### settings.has: $key
 
@@ -152,6 +189,7 @@ Fired after checking if value is present in repository.
 | --- | --- | --- |
 | $key | string | Setting key. |
 | $status | bool | If setting exists ```true``` is passed, otherwise ```false``` |
+| $context | null or Context | Setting context. |
 
 #### settings.getting: $key
 
@@ -161,6 +199,7 @@ Fired before retrieving value from repository.
 | --- | --- | --- |
 | $key | string | Setting key. |
 | $default | mixed | Default setting value. |
+| $context | null or Context | Setting context. |
 
 #### settings.get: $key
 
@@ -171,6 +210,7 @@ Fired after retrieving value from repository.
 | $key | string | Setting key. |
 | $value | mixed | Retrieved setting value. |
 | $default | mixed | Default setting value. |
+| $context | null or Context | Setting context. |
 
 #### settings.setting: $key
 
@@ -180,6 +220,7 @@ Fired before setting value to repository.
 | --- | --- | --- |
 | $key | string | Setting key. |
 | $value | mixed | Setting value to be set. |
+| $context | null or Context | Setting context. |
 
 #### settings.set: $key
 
@@ -189,6 +230,7 @@ Fired after setting value to repository.
 | --- | --- | --- |
 | $key | string | Setting key. |
 | $value | mixed | Setting value to be set. |
+| $context | null or Context | Setting context. |
 
 #### settings.forgetting: $key
 
@@ -197,6 +239,7 @@ Fired before forgetting value.
 | Parameter | Type | Parameter description |
 | --- | --- | --- |
 | $key | string | Setting key. |
+| $context | null or Context | Setting context. |
 
 #### settings.forget: $key
 
@@ -205,3 +248,4 @@ Fired after forgetting value.
 | Parameter | Type | Parameter description |
 | --- | --- | --- |
 | $key | string | Setting key. |
+| $context | null or Context | Setting context. |
