@@ -11,10 +11,15 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testHasReturnRepositoryValue()
     {
-        $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('has')->with('key')->andReturn(true, false);
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $cg = $this->getKeyGeneratorMock();
+
+        $mock = $this->getRepositoryMock();
+        $mock->shouldReceive('has')->with('key_g')->andReturn(true, false);
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
 
         $this->assertTrue($settings->has('key'));
         $this->assertFalse($settings->has('key'));
@@ -22,29 +27,42 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testHasFiresEvents()
     {
+        $context = new \Krucas\Settings\Context();
+
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', $context)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('has')->with('key')->andReturn(true);
+        $mock->shouldReceive('has')->with('key_g')->andReturn(true);
 
         $dispatcher = $this->getDispatcherMock();
-        $dispatcher->shouldReceive('fire')->once()->with('settings.checking: key', ['key']);
-        $dispatcher->shouldReceive('fire')->once()->with('settings.has: key', ['key', true]);
+        $dispatcher->shouldReceive('fire')->once()->with('settings.checking: key', ['key', $context]);
+        $dispatcher->shouldReceive('fire')->once()->with('settings.has: key', ['key', true, $context]);
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->enableEvents();
         $settings->setDispatcher($dispatcher);
 
-        $this->assertTrue($settings->has('key'));
+        $this->assertTrue($settings->context($context)->has('key'));
     }
 
     public function testHasSkipsEvents()
     {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('has')->with('key')->andReturn(true);
+        $mock->shouldReceive('has')->with('key_g')->andReturn(true);
 
         $dispatcher = $this->getDispatcherMock();
         $dispatcher->shouldReceive('fire')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->disableEvents();
         $settings->setDispatcher($dispatcher);
 
@@ -53,33 +71,51 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testGetReturnsRepositoryValue()
     {
-        $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('get')->with('key', null)->andReturn('value');
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
+        $mock = $this->getRepositoryMock();
+        $mock->shouldReceive('get')->with('key_g', null)->andReturn('value');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
 
         $this->assertEquals('value', $settings->get('key'));
     }
 
     public function testGetReturnsDefaultValue()
     {
-        $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('get')->with('key', 'default')->andReturn(null);
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
+        $mock = $this->getRepositoryMock();
+        $mock->shouldReceive('get')->with('key_g', 'default')->andReturn(null);
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
 
         $this->assertEquals('default', $settings->get('key', 'default'));
     }
 
     public function testGetUsesCache()
     {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->with('key', null)->andReturn('key_c');
+
         $mock = $this->getRepositoryMock();
         $mock->shouldReceive('get')->never();
 
         $cache = $this->getCacheMock();
         $cache->shouldReceive('rememberForever')->once()->andReturn('cached');
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->enableCache();
         $settings->setCache($cache);
 
@@ -88,13 +124,19 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testGetSkipsCache()
     {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
         $mock->shouldReceive('get')->once()->andReturn('value');
 
         $cache = $this->getCacheMock();
         $cache->shouldReceive('rememberForever')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->disableCache();
         $settings->setCache($cache);
 
@@ -103,13 +145,19 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testGetUsesEncrypter()
     {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
         $mock->shouldReceive('get')->once()->andReturn('encrypted');
 
         $encrypter = $this->getEncrypterMock();
         $encrypter->shouldReceive('decrypt')->once()->with('encrypted')->andReturn('value');
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->enableEncryption();
         $settings->setEncrypter($encrypter);
 
@@ -118,13 +166,19 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testGetSkipsEncrypter()
     {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
         $mock->shouldReceive('get')->once()->andReturn('value');
 
         $encrypter = $this->getEncrypterMock();
         $encrypter->shouldReceive('decrypt')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->disableEncryption();
         $settings->setEncrypter($encrypter);
 
@@ -133,29 +187,43 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testGetFiresEvents()
     {
+        $context = new \Krucas\Settings\Context();
+
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', $context)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('get')->once()->with('key', 'default')->andReturn('value');
+        $mock->shouldReceive('get')->once()->with('key_g', 'default')->andReturn('value');
 
         $dispatcher = $this->getDispatcherMock();
-        $dispatcher->shouldReceive('fire')->once()->with('settings.getting: key', ['key', 'default']);
-        $dispatcher->shouldReceive('fire')->once()->with('settings.get: key', ['key', 'value', 'default']);
+        $dispatcher->shouldReceive('fire')->once()->with('settings.getting: key', ['key', 'default', $context]);
+        $dispatcher->shouldReceive('fire')->once()->with('settings.get: key', ['key', 'value', 'default', $context]);
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->enableEvents();
         $settings->setDispatcher($dispatcher);
 
-        $this->assertEquals('value', $settings->get('key', 'default'));
+        $this->assertEquals('value', $settings->context($context)->get('key', 'default'));
     }
 
     public function testGetSkipsEvents()
     {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('get')->once()->with('key', 'default')->andReturn('value');
+        $mock->shouldReceive('get')->once()->with('key_g', 'default')->andReturn('value');
 
         $dispatcher = $this->getDispatcherMock();
         $dispatcher->shouldReceive('fire')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->disableEvents();
         $settings->setDispatcher($dispatcher);
 
@@ -164,23 +232,35 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testSetSetsValueToRepository()
     {
-        $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->once()->with('key', 'value');
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
+        $mock = $this->getRepositoryMock();
+        $mock->shouldReceive('set')->once()->with('key_g', 'value');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
 
         $settings->set('key', 'value');
     }
 
     public function testSetUsesEncrypter()
     {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->once()->with('key', 'encrypted');
+        $mock->shouldReceive('set')->once()->with('key_g', 'encrypted');
 
         $encrypter = $this->getEncrypterMock();
         $encrypter->shouldReceive('encrypt')->once()->with('value')->andReturn('encrypted');
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->enableEncryption();
         $settings->setEncrypter($encrypter);
 
@@ -189,13 +269,19 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testSetSkipsEncrypter()
     {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->once()->with('key', 'value');
+        $mock->shouldReceive('set')->once()->with('key_g', 'value');
 
         $encrypter = $this->getEncrypterMock();
         $encrypter->shouldReceive('encrypt')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->disableEncryption();
         $settings->setEncrypter($encrypter);
 
@@ -204,13 +290,19 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testSetUsesCache()
     {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->with('key', null)->andReturn('key_c');
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->once()->with('key', 'value');
+        $mock->shouldReceive('set')->once()->with('key_g', 'value');
 
         $cache = $this->getCacheMock();
-        $cache->shouldReceive('forget')->once()->with('key');
+        $cache->shouldReceive('forget')->once()->with('key_c');
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->enableCache();
         $settings->setCache($cache);
 
@@ -219,13 +311,19 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testSetSkipsCache()
     {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->once()->with('key', 'value');
+        $mock->shouldReceive('set')->once()->with('key_g', 'value');
 
         $cache = $this->getCacheMock();
         $cache->shouldReceive('forget')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->disableCache();
         $settings->setCache($cache);
 
@@ -234,29 +332,43 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testSetFiresEvents()
     {
+        $context = new \Krucas\Settings\Context();
+
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', $context)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->once()->with('key', 'value');
+        $mock->shouldReceive('set')->once()->with('key_g', 'value');
 
         $dispatcher = $this->getDispatcherMock();
-        $dispatcher->shouldReceive('fire')->once()->with('settings.setting: key', ['key', 'value']);
-        $dispatcher->shouldReceive('fire')->once()->with('settings.set: key', ['key', 'value']);
+        $dispatcher->shouldReceive('fire')->once()->with('settings.setting: key', ['key', 'value', $context]);
+        $dispatcher->shouldReceive('fire')->once()->with('settings.set: key', ['key', 'value', $context]);
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->enableEvents();
         $settings->setDispatcher($dispatcher);
 
-        $settings->set('key', 'value');
+        $settings->context($context)->set('key', 'value');
     }
 
     public function testSetSkipsEvents()
     {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->once()->with('key', 'value');
+        $mock->shouldReceive('set')->once()->with('key_g', 'value');
 
         $dispatcher = $this->getDispatcherMock();
         $dispatcher->shouldReceive('fire')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->disableEvents();
         $settings->setDispatcher($dispatcher);
 
@@ -265,23 +377,35 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testForgetForgetsRepositoryValue()
     {
-        $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('forget')->once()->with('key');
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
+        $mock = $this->getRepositoryMock();
+        $mock->shouldReceive('forget')->once()->with('key_g');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
 
         $settings->forget('key');
     }
 
     public function testForgetUsesCache()
     {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->with('key', null)->andReturn('key_c');
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('forget')->once()->with('key');
+        $mock->shouldReceive('forget')->once()->with('key_g');
 
         $cache = $this->getCacheMock();
-        $cache->shouldReceive('forget')->once()->with('key');
+        $cache->shouldReceive('forget')->once()->with('key_c');
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->enableCache();
         $settings->setCache($cache);
 
@@ -290,13 +414,19 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testForgetSkipsCache()
     {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('forget')->once()->with('key');
+        $mock->shouldReceive('forget')->once()->with('key_g');
 
         $cache = $this->getCacheMock();
         $cache->shouldReceive('forget')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->disableCache();
         $settings->setCache($cache);
 
@@ -305,33 +435,78 @@ class SettingsTest extends PHPUnit_Framework_TestCase
 
     public function testForgetFiresEvents()
     {
+        $context = new \Krucas\Settings\Context();
+
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', $context)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('forget')->once()->with('key');
+        $mock->shouldReceive('forget')->once()->with('key_g');
 
         $dispatcher = $this->getDispatcherMock();
-        $dispatcher->shouldReceive('fire')->once()->with('settings.forgetting: key', ['key']);
-        $dispatcher->shouldReceive('fire')->once()->with('settings.forget: key', ['key']);
+        $dispatcher->shouldReceive('fire')->once()->with('settings.forgetting: key', ['key', $context]);
+        $dispatcher->shouldReceive('fire')->once()->with('settings.forget: key', ['key', $context]);
 
-        $settings = new \Krucas\Settings\Settings($mock);
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
         $settings->enableEvents();
+        $settings->setDispatcher($dispatcher);
+
+        $settings->context($context)->forget('key');
+    }
+
+    public function testForgetSkipsEvents()
+    {
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
+        $mock = $this->getRepositoryMock();
+        $mock->shouldReceive('forget')->once()->with('key_g');
+
+        $dispatcher = $this->getDispatcherMock();
+        $dispatcher->shouldReceive('fire')->never();
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
+        $settings->disableEvents();
         $settings->setDispatcher($dispatcher);
 
         $settings->forget('key');
     }
 
-    public function testForgetSkipsEvents()
+    public function testSetSameKeysForDifferentContexts()
     {
+        $context1 = new \Krucas\Settings\Context();
+
+        $context2 = new \Krucas\Settings\Context();
+
+        $g = $this->getKeyGeneratorMock();
+        $g->shouldReceive('generate')->with('key', $context1)->andReturn('key_1');
+        $g->shouldReceive('generate')->with('key', $context2)->andReturn('key_2');
+        $g->shouldReceive('generate')->with('key', null)->andReturn('key');
+
+        $cg = $this->getKeyGeneratorMock();
+        $cg->shouldReceive('generate')->never();
+
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('forget')->once()->with('key');
+        $mock->shouldReceive('set')->with('key_1', 'v1');
+        $mock->shouldReceive('get')->with('key_1', null)->andReturn('v1');
+        $mock->shouldReceive('set')->with('key_2', 'v2');
+        $mock->shouldReceive('get')->with('key_2', null)->andReturn('v2');
+        $mock->shouldReceive('get')->with('key', null)->andReturn(null);
 
-        $dispatcher = $this->getDispatcherMock();
-        $dispatcher->shouldReceive('fire')->never();
+        $settings = new \Krucas\Settings\Settings($mock, $g, $cg);
 
-        $settings = new \Krucas\Settings\Settings($mock);
-        $settings->disableEvents();
-        $settings->setDispatcher($dispatcher);
+        $settings->context($context1)->set('key', 'v1');
+        $settings->context($context2)->set('key', 'v2');
 
-        $settings->forget('key');
+        $this->assertEquals('v1', $settings->context($context1)->get('key'));
+        $this->assertEquals('v2', $settings->context($context2)->get('key'));
+        $this->assertEquals(null, $settings->get('key'));
     }
 
     protected function getRepositoryMock()
@@ -352,5 +527,10 @@ class SettingsTest extends PHPUnit_Framework_TestCase
     protected function getEncrypterMock()
     {
         return m::mock('Illuminate\Contracts\Encryption\Encrypter');
+    }
+
+    protected function getKeyGeneratorMock()
+    {
+        return m::mock('Krucas\Settings\Contracts\KeyGenerator');
     }
 }

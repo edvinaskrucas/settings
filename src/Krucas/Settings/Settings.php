@@ -2,6 +2,7 @@
 
 use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Contracts\Events\Dispatcher;
+use Krucas\Settings\Contracts\KeyGenerator;
 use Krucas\Settings\Contracts\Repository;
 use Illuminate\Contracts\Cache\Repository as Cache;
 
@@ -13,6 +14,20 @@ class Settings implements Repository
      * @var \Krucas\Settings\Contracts\Repository
      */
     protected $repository;
+
+    /**
+     * Repository key generator.
+     *
+     * @var \Krucas\Settings\Contracts\KeyGenerator
+     */
+    protected $keyGenerator;
+
+    /**
+     * Cache key generator.
+     *
+     * @var \Krucas\Settings\Contracts\KeyGenerator
+     */
+    protected $cacheKeyGenerator;
 
     /**
      * Cache repository.
@@ -36,13 +51,6 @@ class Settings implements Repository
     protected $dispatcher;
 
     /**
-     * Cache key prefix.
-     *
-     * @var null|string
-     */
-    protected $prefix;
-
-    /**
      * Enable cache.
      *
      * @var bool
@@ -64,13 +72,24 @@ class Settings implements Repository
     protected $eventsEnabled = false;
 
     /**
+     * Used context.
+     *
+     * @var \Krucas\Settings\Context
+     */
+    protected $context;
+
+    /**
      * Create new settings.
      *
      * @param \Krucas\Settings\Contracts\Repository $repository
+     * @param \Krucas\Settings\Contracts\KeyGenerator $keyGenerator
+     * @param \Krucas\Settings\Contracts\KeyGenerator $cacheKeyGenerator
      */
-    public function __construct(Repository $repository)
+    public function __construct(Repository $repository, KeyGenerator $keyGenerator, KeyGenerator $cacheKeyGenerator)
     {
         $this->repository = $repository;
+        $this->keyGenerator = $keyGenerator;
+        $this->cacheKeyGenerator = $cacheKeyGenerator;
     }
 
     /**
@@ -81,6 +100,26 @@ class Settings implements Repository
     public function getRepository()
     {
         return $this->repository;
+    }
+
+    /**
+     * Return repository key generator.
+     *
+     * @return \Krucas\Settings\Contracts\KeyGenerator
+     */
+    public function getKeyGenerator()
+    {
+        return $this->keyGenerator;
+    }
+
+    /**
+     * Return cache key generator.
+     *
+     * @return \Krucas\Settings\Contracts\KeyGenerator
+     */
+    public function getCacheKeyGenerator()
+    {
+        return $this->cacheKeyGenerator;
     }
 
     /**
@@ -112,17 +151,6 @@ class Settings implements Repository
     public function setCache(Cache $cache)
     {
         $this->cache = $cache;
-    }
-
-    /**
-     * Set cache prefix for settings keys.
-     *
-     * @param string $prefix
-     * @return void
-     */
-    public function setCachePrefix($prefix)
-    {
-        $this->prefix = $prefix;
     }
 
     /**
@@ -248,6 +276,19 @@ class Settings implements Repository
     }
 
     /**
+     * Set or reset context.
+     *
+     * @param \Krucas\Settings\Context|null $context
+     * @return $this
+     */
+    public function context(Context $context = null)
+    {
+        $this->context = $context;
+
+        return $this;
+    }
+
+    /**
      * Determine if the given setting value exists.
      *
      * @param string $key
@@ -257,9 +298,11 @@ class Settings implements Repository
     {
         $this->fire('checking', $key, [$key]);
 
-        $status = $this->repository->has($key);
+        $status = $this->repository->has($this->getKey($key));
 
         $this->fire('has', $key, [$key, $status]);
+
+        $this->context(null);
 
         return $status;
     }
@@ -276,13 +319,13 @@ class Settings implements Repository
         $this->fire('getting', $key, [$key, $default]);
 
         if ($this->isCacheEnabled()) {
-            $repository = $this->repository;
+            $settings = $this;
 
-            $value = $this->cache->rememberForever($this->getCacheKey($key), function () use ($key, $repository) {
-                return $repository->get($key);
+            $value = $this->cache->rememberForever($this->getCacheKey($key), function () use ($key, $settings) {
+                return $settings->repository->get($settings->getKey($key));
             });
         } else {
-            $value = $this->repository->get($key, $default);
+            $value = $this->repository->get($this->getKey($key), $default);
         }
 
         if (!is_null($value)) {
@@ -292,6 +335,8 @@ class Settings implements Repository
         }
 
         $this->fire('get', $key, [$key, $value, $default]);
+
+        $this->context(null);
 
         return $value;
     }
@@ -307,13 +352,18 @@ class Settings implements Repository
     {
         $this->fire('setting', $key, [$key, $value]);
 
-        $this->repository->set($key, $this->isEncryptionEnabled() ? $this->encrypter->encrypt($value) : $value);
+        $this->repository->set(
+            $this->getKey($key),
+            $this->isEncryptionEnabled()? $this->encrypter->encrypt($value) : $value
+        );
 
         if ($this->isCacheEnabled()) {
             $this->cache->forget($this->getCacheKey($key));
         }
 
         $this->fire('set', $key, [$key, $value]);
+
+        $this->context(null);
     }
 
     /**
@@ -326,24 +376,37 @@ class Settings implements Repository
     {
         $this->fire('forgetting', $key, [$key]);
 
-        $this->repository->forget($key);
+        $this->repository->forget($this->getKey($key));
 
         if ($this->isCacheEnabled()) {
             $this->cache->forget($this->getCacheKey($key));
         }
 
         $this->fire('forget', $key, [$key]);
+
+        $this->context(null);
     }
 
     /**
-     * Return prefixed cache key.
+     * Return repository cache key.
+     *
+     * @param string $key
+     * @return string
+     */
+    protected function getKey($key)
+    {
+        return $this->keyGenerator->generate($key, $this->context);
+    }
+
+    /**
+     * Return cache key.
      *
      * @param string $key
      * @return string
      */
     protected function getCacheKey($key)
     {
-        return $this->prefix . $key;
+        return $this->cacheKeyGenerator->generate($key, $this->context);
     }
 
     /**
@@ -355,6 +418,8 @@ class Settings implements Repository
      */
     protected function fire($event, $key, array $payload = [])
     {
+        $payload[] = $this->context;
+
         if ($this->isEventsEnabled()) {
             $this->dispatcher->fire("settings.{$event}: {$key}", $payload);
         }
