@@ -27,17 +27,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Cache key prefix
-    |--------------------------------------------------------------------------
-    |
-    | Cache key prefix used to store cached settings values.
-    |
-    */
-
-    'prefix' => 'settings.',
-
-    /*
-    |--------------------------------------------------------------------------
     | Enable / Disable value encryption
     |--------------------------------------------------------------------------
     |
@@ -76,6 +65,27 @@ return [
         ],
 
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Key generator class
+    |--------------------------------------------------------------------------
+    |
+    | Key generator is used to generate keys based on setting key and context.
+    |
+    */
+    'key_generator' => \Krucas\Settings\KeyGenerators\KeyGenerator::class,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Context serializer class
+    |--------------------------------------------------------------------------
+    |
+    | Context serializer serializes context.
+    | It is used with "Krucas\Settings\KeyGenerators\KeyGenerator" class.
+    |
+    */
+    'context_serializer' => \Krucas\Settings\ContextSerializers\ContextSerializer::class,
 
     /*
     |--------------------------------------------------------------------------
