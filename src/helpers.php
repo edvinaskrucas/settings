@@ -8,21 +8,31 @@ if (!function_exists('settings')) {
      *
      * @param array|string $key
      * @param mixed $default
+     * @param null $context
      * @return mixed
      */
-    function settings($key = null, $default = null)
+    function settings($key = null, $default = null, $context = null)
     {
+        $settings = app('settings');
+
         if (is_null($key)) {
-            return app('settings');
+            return $settings;
         }
 
         if (is_array($key)) {
             foreach ($key as $k => $v) {
-                app('settings')->set($k, $v);
+                if ($default instanceof \Krucas\Settings\Context) {
+                    $settings->context($default);
+                }
+                $settings->set($k, $v);
             }
             return;
         }
 
-        return app('settings')->get($key, $default);
+        if ($context instanceof \Krucas\Settings\Context) {
+            $settings->context($context);
+        }
+
+        return $settings->get($key, $default);
     }
 }

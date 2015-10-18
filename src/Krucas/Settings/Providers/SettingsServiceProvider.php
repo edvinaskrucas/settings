@@ -2,7 +2,6 @@
 
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use Krucas\Settings\Console\SettingsTableCommand;
 use Krucas\Settings\Factory;
@@ -72,6 +71,14 @@ class SettingsServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../../../config/settings.php', 'settings');
 
+        $this->app->singleton('settings.key_generator', function ($app) {
+            return $app->make($app['config']['settings.key_generator']);
+        });
+
+        $this->app->singleton('settings.context_serializer', function ($app) {
+            return $app->make($app['config']['settings.context_serializer']);
+        });
+
         $this->app->singleton('settings.factory', function ($app) {
             return new Factory($app);
         });
@@ -81,10 +88,9 @@ class SettingsServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton('settings', function ($app) {
-            $settings = new Settings($app['settings.repository']);
+            $settings = new Settings($app['settings.repository'], $app['settings.key_generator']);
 
             $settings->setCache($app['cache.store']);
-            $settings->setCachePrefix($app['config']['settings.prefix']);
             $settings->setEncrypter($app['encrypter']);
             $settings->setDispatcher($app['events']);
 
@@ -110,6 +116,10 @@ class SettingsServiceProvider extends ServiceProvider
         $this->app->alias('settings.factory', 'Krucas\Settings\Contracts\Factory');
 
         $this->app->alias('settings.repository', 'Krucas\Settings\Contracts\Repository');
+
+        $this->app->alias('settings.key_generator', 'Krucas\Settings\Contracts\KeyGenerator');
+
+        $this->app->alias('settings.context_serializer', 'Krucas\Settings\Contracts\ContextSerializer');
 
         $this->app->alias('settings', 'Krucas\Settings\Settings');
     }
@@ -139,6 +149,8 @@ class SettingsServiceProvider extends ServiceProvider
             'settings',
             'settings.repository',
             'settings.factory',
+            'settings.key_generator',
+            'settings.context_serializer',
             'command.settings.table',
         ];
     }
