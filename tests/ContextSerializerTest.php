@@ -18,4 +18,11 @@ class ContextSerializerTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals(serialize($context), $serializer->serialize($context));
     }
+
+    public function testSerializeNull()
+    {
+        $serializer = new \Krucas\Settings\ContextSerializers\ContextSerializer();
+
+        $this->assertEquals(serialize(null), $serializer->serialize(null));
+    }
 }

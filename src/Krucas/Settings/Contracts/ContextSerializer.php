@@ -12,5 +12,5 @@ interface ContextSerializer
      * @param \Krucas\Settings\Context $context
      * @return string
      */
-    public function serialize(Context $context);
+    public function serialize(Context $context = null);
 }

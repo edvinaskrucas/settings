@@ -13,7 +13,7 @@ class ContextSerializer implements ContextSerializerContract
      * @param \Krucas\Settings\Context $context
      * @return string
      */
-    public function serialize(Context $context)
+    public function serialize(Context $context = null)
     {
         return serialize($context);
     }
