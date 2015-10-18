@@ -40,7 +40,7 @@ Krucas\Settings\Providers\SettingsServiceProvider::class,
 
 Alias array
 ```php
-'Settings' => 'Krucas\Settings\Facades\Settings'
+'Settings' => Krucas\Settings\Facades\Settings::class
 ```
 
 ### Publishing config file
