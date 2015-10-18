@@ -23,13 +23,6 @@ class Settings implements Repository
     protected $keyGenerator;
 
     /**
-     * Cache key generator.
-     *
-     * @var \Krucas\Settings\Contracts\KeyGenerator
-     */
-    protected $cacheKeyGenerator;
-
-    /**
      * Cache repository.
      *
      * @var null|\Illuminate\Contracts\Cache\Repository
@@ -83,13 +76,11 @@ class Settings implements Repository
      *
      * @param \Krucas\Settings\Contracts\Repository $repository
      * @param \Krucas\Settings\Contracts\KeyGenerator $keyGenerator
-     * @param \Krucas\Settings\Contracts\KeyGenerator $cacheKeyGenerator
      */
-    public function __construct(Repository $repository, KeyGenerator $keyGenerator, KeyGenerator $cacheKeyGenerator)
+    public function __construct(Repository $repository, KeyGenerator $keyGenerator)
     {
         $this->repository = $repository;
         $this->keyGenerator = $keyGenerator;
-        $this->cacheKeyGenerator = $cacheKeyGenerator;
     }
 
     /**
@@ -110,16 +101,6 @@ class Settings implements Repository
     public function getKeyGenerator()
     {
         return $this->keyGenerator;
-    }
-
-    /**
-     * Return cache key generator.
-     *
-     * @return \Krucas\Settings\Contracts\KeyGenerator
-     */
-    public function getCacheKeyGenerator()
-    {
-        return $this->cacheKeyGenerator;
     }
 
     /**
@@ -318,14 +299,16 @@ class Settings implements Repository
     {
         $this->fire('getting', $key, [$key, $default]);
 
-        if ($this->isCacheEnabled()) {
-            $settings = $this;
+        $generatedKey = $this->getKey($key);
 
-            $value = $this->cache->rememberForever($this->getCacheKey($key), function () use ($key, $settings) {
-                return $settings->repository->get($settings->getKey($key));
+        if ($this->isCacheEnabled()) {
+            $repository = $this->repository;
+
+            $value = $this->cache->rememberForever($generatedKey, function () use ($repository, $generatedKey) {
+                return $repository->get($generatedKey);
             });
         } else {
-            $value = $this->repository->get($this->getKey($key), $default);
+            $value = $this->repository->get($generatedKey, $default);
         }
 
         if (!is_null($value)) {
@@ -352,13 +335,15 @@ class Settings implements Repository
     {
         $this->fire('setting', $key, [$key, $value]);
 
+        $generatedKey = $this->getKey($key);
+
         $this->repository->set(
-            $this->getKey($key),
+            $generatedKey,
             $this->isEncryptionEnabled()? $this->encrypter->encrypt($value) : $value
         );
 
         if ($this->isCacheEnabled()) {
-            $this->cache->forget($this->getCacheKey($key));
+            $this->cache->forget($generatedKey);
         }
 
         $this->fire('set', $key, [$key, $value]);
@@ -376,10 +361,12 @@ class Settings implements Repository
     {
         $this->fire('forgetting', $key, [$key]);
 
-        $this->repository->forget($this->getKey($key));
+        $generatedKey = $this->getKey($key);
+
+        $this->repository->forget($generatedKey);
 
         if ($this->isCacheEnabled()) {
-            $this->cache->forget($this->getCacheKey($key));
+            $this->cache->forget($generatedKey);
         }
 
         $this->fire('forget', $key, [$key]);
@@ -396,17 +383,6 @@ class Settings implements Repository
     protected function getKey($key)
     {
         return $this->keyGenerator->generate($key, $this->context);
-    }
-
-    /**
-     * Return cache key.
-     *
-     * @param string $key
-     * @return string
-     */
-    protected function getCacheKey($key)
-    {
-        return $this->cacheKeyGenerator->generate($key, $this->context);
     }
 
     /**
