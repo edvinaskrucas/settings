@@ -9,6 +9,15 @@ class ContextTest extends PHPUnit_Framework_TestCase
         m::close();
     }
 
+    public function testConstructorSetsValues()
+    {
+        $context = new \Krucas\Settings\Context(['test' => 'value', 'a' => 'b']);
+
+        $this->assertCount(2, $context);
+        $this->assertEquals('value', $context->get('test'));
+        $this->assertEquals('b', $context->get('a'));
+    }
+
     public function testSetContextArgument()
     {
         $context = new \Krucas\Settings\Context();

@@ -12,6 +12,16 @@ class Context implements \Countable
     protected $arguments = [];
 
     /**
+     * @param array $arguments
+     */
+    public function __construct(array $arguments = [])
+    {
+        foreach ($arguments as $name => $value) {
+            $this->set($name, $value);
+        }
+    }
+
+    /**
      * Access context argument value.
      *
      * @param string $name
