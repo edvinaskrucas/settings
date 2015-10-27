@@ -40,7 +40,7 @@ class DatabaseRepository implements Repository
      */
     public function has($key)
     {
-        return $this->table()->where('key', '=', $key)->count() > 0 ? true : false;
+        return $this->table()->whereKey($key)->count() > 0 ? true : false;
     }
 
     /**
@@ -52,7 +52,7 @@ class DatabaseRepository implements Repository
      */
     public function get($key, $default = null)
     {
-        $value = $this->table()->where('key', '=', $key)->value('value');
+        $value = $this->table()->whereKey($key)->value('value');
 
         return is_null($value) ? $default : $value;
     }
@@ -69,7 +69,7 @@ class DatabaseRepository implements Repository
         try {
             $this->table()->insert(compact('key', 'value'));
         } catch (Exception $e) {
-            $this->table()->where('key', '=', $key)->update(compact('value'));
+            $this->table()->whereKey($key)->update(compact('value'));
         }
     }
 
@@ -81,7 +81,7 @@ class DatabaseRepository implements Repository
      */
     public function forget($key)
     {
-        $this->table()->where('key', $key)->delete();
+        $this->table()->whereKey($key)->delete();
     }
 
     /**
