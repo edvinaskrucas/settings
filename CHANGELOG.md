@@ -1,3 +1,11 @@
+# 2.0.0
+
+---
+
+* Added support for laravel 5.2
+
+---
+
 # 1.2.0
 
 ---
