@@ -15,6 +15,7 @@ Persistent settings package for Laravel 5.
 * Override config values
 * Helper function
 * Settings by context
+* Serialize values
 
 ---
 
@@ -24,7 +25,7 @@ Require this package in your composer.json:
 
 ```
 "require": {
-  "edvinaskrucas/settings": "1.1.0"
+  "edvinaskrucas/settings": "1.2.0"
 }
 ```
 
@@ -64,6 +65,7 @@ Package comes with several configuration options.
 | ```repositories``` | Config of all repositories which can be used. |
 | ```key_generator``` | Key generator class. |
 | ```context_serializer``` | Context serializer class. |
+| ```value_serializer``` | Value serializer class. |
 | ```override``` | Allows you to override values in Laravel config array. |
 
 ### Creating table for database driver

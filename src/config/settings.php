@@ -89,6 +89,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Value serializer class
+    |--------------------------------------------------------------------------
+    |
+    | Value serializer serializes / unserializes given value.
+    |
+    */
+    'value_serializer' => \Krucas\Settings\ValueSerializers\ValueSerializer::class,
+
+    /*
+    |--------------------------------------------------------------------------
     | Override application config values
     |--------------------------------------------------------------------------
     |

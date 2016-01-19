@@ -79,6 +79,10 @@ class SettingsServiceProvider extends ServiceProvider
             return $app->make($app['config']['settings.context_serializer']);
         });
 
+        $this->app->singleton('settings.value_serializer', function ($app) {
+            return $app->make($app['config']['settings.value_serializer']);
+        });
+
         $this->app->singleton('settings.factory', function ($app) {
             return new Factory($app);
         });
@@ -88,7 +92,11 @@ class SettingsServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton('settings', function ($app) {
-            $settings = new Settings($app['settings.repository'], $app['settings.key_generator']);
+            $settings = new Settings(
+                $app['settings.repository'],
+                $app['settings.key_generator'],
+                $app['settings.value_serializer']
+            );
 
             $settings->setCache($app['cache.store']);
             $settings->setEncrypter($app['encrypter']);
@@ -120,6 +128,8 @@ class SettingsServiceProvider extends ServiceProvider
         $this->app->alias('settings.key_generator', 'Krucas\Settings\Contracts\KeyGenerator');
 
         $this->app->alias('settings.context_serializer', 'Krucas\Settings\Contracts\ContextSerializer');
+
+        $this->app->alias('settings.value_serializer', 'Krucas\Settings\Contracts\ValueSerializer');
 
         $this->app->alias('settings', 'Krucas\Settings\Settings');
     }
