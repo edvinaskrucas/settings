@@ -17,7 +17,9 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $mock = $this->getRepositoryMock();
         $mock->shouldReceive('has')->with('key_g')->andReturn(true, false);
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
 
         $this->assertTrue($settings->has('key'));
         $this->assertFalse($settings->has('key'));
@@ -37,7 +39,9 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $dispatcher->shouldReceive('fire')->once()->with('settings.checking: key', ['key', $context]);
         $dispatcher->shouldReceive('fire')->once()->with('settings.has: key', ['key', true, $context]);
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->enableEvents();
         $settings->setDispatcher($dispatcher);
 
@@ -55,7 +59,9 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $dispatcher = $this->getDispatcherMock();
         $dispatcher->shouldReceive('fire')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->disableEvents();
         $settings->setDispatcher($dispatcher);
 
@@ -68,9 +74,12 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('get')->with('key_g', null)->andReturn('value');
+        $mock->shouldReceive('get')->with('key_g', null)->andReturn('serialized');
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('unserialize')->once()->with('serialized')->andReturn('value');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
 
         $this->assertEquals('value', $settings->get('key'));
     }
@@ -83,7 +92,9 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $mock = $this->getRepositoryMock();
         $mock->shouldReceive('get')->with('key_g', 'default')->andReturn(null);
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
 
         $this->assertEquals('default', $settings->get('key', 'default'));
     }
@@ -99,11 +110,14 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $cache = $this->getCacheMock();
         $cache->shouldReceive('rememberForever')->once()->andReturn('cached');
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('unserialize')->with('cached')->andReturn('unserialized');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->enableCache();
         $settings->setCache($cache);
 
-        $this->assertEquals('cached', $settings->get('key'));
+        $this->assertEquals('unserialized', $settings->get('key'));
     }
 
     public function testGetSkipsCache()
@@ -112,12 +126,15 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('get')->once()->andReturn('value');
+        $mock->shouldReceive('get')->once()->andReturn('serialized');
 
         $cache = $this->getCacheMock();
         $cache->shouldReceive('rememberForever')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('unserialize')->with('serialized')->andReturn('value');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->disableCache();
         $settings->setCache($cache);
 
@@ -133,9 +150,12 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $mock->shouldReceive('get')->once()->andReturn('encrypted');
 
         $encrypter = $this->getEncrypterMock();
-        $encrypter->shouldReceive('decrypt')->once()->with('encrypted')->andReturn('value');
+        $encrypter->shouldReceive('decrypt')->once()->with('encrypted')->andReturn('serialized');
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('unserialize')->with('serialized')->andReturn('value');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->enableEncryption();
         $settings->setEncrypter($encrypter);
 
@@ -148,12 +168,15 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('get')->once()->andReturn('value');
+        $mock->shouldReceive('get')->once()->andReturn('serialized');
 
         $encrypter = $this->getEncrypterMock();
         $encrypter->shouldReceive('decrypt')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('unserialize')->with('serialized')->andReturn('value');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->disableEncryption();
         $settings->setEncrypter($encrypter);
 
@@ -168,13 +191,16 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $g->shouldReceive('generate')->with('key', $context)->andReturn('key_g');
 
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('get')->once()->with('key_g', 'default')->andReturn('value');
+        $mock->shouldReceive('get')->once()->with('key_g', 'default')->andReturn('serialized');
 
         $dispatcher = $this->getDispatcherMock();
         $dispatcher->shouldReceive('fire')->once()->with('settings.getting: key', ['key', 'default', $context]);
         $dispatcher->shouldReceive('fire')->once()->with('settings.get: key', ['key', 'value', 'default', $context]);
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('unserialize')->with('serialized')->andReturn('value');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->enableEvents();
         $settings->setDispatcher($dispatcher);
 
@@ -187,12 +213,15 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('get')->once()->with('key_g', 'default')->andReturn('value');
+        $mock->shouldReceive('get')->once()->with('key_g', 'default')->andReturn('serialized');
 
         $dispatcher = $this->getDispatcherMock();
         $dispatcher->shouldReceive('fire')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('unserialize')->with('serialized')->andReturn('value');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->disableEvents();
         $settings->setDispatcher($dispatcher);
 
@@ -205,9 +234,12 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->once()->with('key_g', 'value');
+        $mock->shouldReceive('set')->once()->with('key_g', 'serialized');
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('serialize')->with('value')->andReturn('serialized');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
 
         $settings->set('key', 'value');
     }
@@ -221,9 +253,12 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $mock->shouldReceive('set')->once()->with('key_g', 'encrypted');
 
         $encrypter = $this->getEncrypterMock();
-        $encrypter->shouldReceive('encrypt')->once()->with('value')->andReturn('encrypted');
+        $encrypter->shouldReceive('encrypt')->once()->with('serialized')->andReturn('encrypted');
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('serialize')->with('value')->andReturn('serialized');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->enableEncryption();
         $settings->setEncrypter($encrypter);
 
@@ -236,12 +271,15 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->once()->with('key_g', 'value');
+        $mock->shouldReceive('set')->once()->with('key_g', 'serialized');
 
         $encrypter = $this->getEncrypterMock();
         $encrypter->shouldReceive('encrypt')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('serialize')->with('value')->andReturn('serialized');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->disableEncryption();
         $settings->setEncrypter($encrypter);
 
@@ -254,12 +292,15 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->once()->with('key_g', 'value');
+        $mock->shouldReceive('set')->once()->with('key_g', 'serialized');
 
         $cache = $this->getCacheMock();
         $cache->shouldReceive('forget')->once()->with('key_g');
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('serialize')->with('value')->andReturn('serialized');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->enableCache();
         $settings->setCache($cache);
 
@@ -272,12 +313,15 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->once()->with('key_g', 'value');
+        $mock->shouldReceive('set')->once()->with('key_g', 'serialized');
 
         $cache = $this->getCacheMock();
         $cache->shouldReceive('forget')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('serialize')->with('value')->andReturn('serialized');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->disableCache();
         $settings->setCache($cache);
 
@@ -292,13 +336,16 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $g->shouldReceive('generate')->with('key', $context)->andReturn('key_g');
 
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->once()->with('key_g', 'value');
+        $mock->shouldReceive('set')->once()->with('key_g', 'serialized');
 
         $dispatcher = $this->getDispatcherMock();
         $dispatcher->shouldReceive('fire')->once()->with('settings.setting: key', ['key', 'value', $context]);
         $dispatcher->shouldReceive('fire')->once()->with('settings.set: key', ['key', 'value', $context]);
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('serialize')->with('value')->andReturn('serialized');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->enableEvents();
         $settings->setDispatcher($dispatcher);
 
@@ -311,12 +358,15 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $g->shouldReceive('generate')->with('key', null)->andReturn('key_g');
 
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->once()->with('key_g', 'value');
+        $mock->shouldReceive('set')->once()->with('key_g', 'serialized');
 
         $dispatcher = $this->getDispatcherMock();
         $dispatcher->shouldReceive('fire')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('serialize')->with('value')->andReturn('serialized');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->disableEvents();
         $settings->setDispatcher($dispatcher);
 
@@ -331,7 +381,9 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $mock = $this->getRepositoryMock();
         $mock->shouldReceive('forget')->once()->with('key_g');
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
 
         $settings->forget('key');
     }
@@ -347,7 +399,9 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $cache = $this->getCacheMock();
         $cache->shouldReceive('forget')->once()->with('key_g');
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->enableCache();
         $settings->setCache($cache);
 
@@ -365,7 +419,9 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $cache = $this->getCacheMock();
         $cache->shouldReceive('forget')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->disableCache();
         $settings->setCache($cache);
 
@@ -386,7 +442,9 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $dispatcher->shouldReceive('fire')->once()->with('settings.forgetting: key', ['key', $context]);
         $dispatcher->shouldReceive('fire')->once()->with('settings.forget: key', ['key', $context]);
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->enableEvents();
         $settings->setDispatcher($dispatcher);
 
@@ -404,7 +462,9 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $dispatcher = $this->getDispatcherMock();
         $dispatcher->shouldReceive('fire')->never();
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
         $settings->disableEvents();
         $settings->setDispatcher($dispatcher);
 
@@ -423,13 +483,19 @@ class SettingsTest extends PHPUnit_Framework_TestCase
         $g->shouldReceive('generate')->with('key', null)->andReturn('key');
 
         $mock = $this->getRepositoryMock();
-        $mock->shouldReceive('set')->with('key_1', 'v1');
-        $mock->shouldReceive('get')->with('key_1', null)->andReturn('v1');
-        $mock->shouldReceive('set')->with('key_2', 'v2');
-        $mock->shouldReceive('get')->with('key_2', null)->andReturn('v2');
+        $mock->shouldReceive('set')->with('key_1', 'serialized1');
+        $mock->shouldReceive('get')->with('key_1', null)->andReturn('serialized1');
+        $mock->shouldReceive('set')->with('key_2', 'serialized2');
+        $mock->shouldReceive('get')->with('key_2', null)->andReturn('serialized2');
         $mock->shouldReceive('get')->with('key', null)->andReturn(null);
 
-        $settings = new \Krucas\Settings\Settings($mock, $g);
+        $valueSerializer = $this->getValueSerializerMock();
+        $valueSerializer->shouldReceive('serialize')->with('v1')->andReturn('serialized1');
+        $valueSerializer->shouldReceive('unserialize')->with('serialized1')->andReturn('v1');
+        $valueSerializer->shouldReceive('serialize')->with('v2')->andReturn('serialized2');
+        $valueSerializer->shouldReceive('unserialize')->with('serialized2')->andReturn('v2');
+
+        $settings = new \Krucas\Settings\Settings($mock, $g, $valueSerializer);
 
         $settings->context($context1)->set('key', 'v1');
         $settings->context($context2)->set('key', 'v2');
@@ -462,5 +528,10 @@ class SettingsTest extends PHPUnit_Framework_TestCase
     protected function getKeyGeneratorMock()
     {
         return m::mock('Krucas\Settings\Contracts\KeyGenerator');
+    }
+
+    protected function getValueSerializerMock()
+    {
+        return m::mock('Krucas\Settings\Contracts\ValueSerializer');
     }
 }

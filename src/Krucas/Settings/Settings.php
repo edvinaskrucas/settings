@@ -5,6 +5,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Krucas\Settings\Contracts\KeyGenerator;
 use Krucas\Settings\Contracts\Repository;
 use Illuminate\Contracts\Cache\Repository as Cache;
+use Krucas\Settings\Contracts\ValueSerializer;
 
 class Settings implements Repository
 {
@@ -72,15 +73,24 @@ class Settings implements Repository
     protected $context;
 
     /**
+     * Value serializer.
+     *
+     * @var \Krucas\Settings\Contracts\ValueSerializer
+     */
+    protected $valueSerializer;
+
+    /**
      * Create new settings.
      *
      * @param \Krucas\Settings\Contracts\Repository $repository
      * @param \Krucas\Settings\Contracts\KeyGenerator $keyGenerator
+     * @param \Krucas\Settings\Contracts\ValueSerializer $valueSerializer
      */
-    public function __construct(Repository $repository, KeyGenerator $keyGenerator)
+    public function __construct(Repository $repository, KeyGenerator $keyGenerator, ValueSerializer $valueSerializer)
     {
         $this->repository = $repository;
         $this->keyGenerator = $keyGenerator;
+        $this->valueSerializer = $valueSerializer;
     }
 
     /**
@@ -312,7 +322,7 @@ class Settings implements Repository
         }
 
         if (!is_null($value)) {
-            $value = $this->isEncryptionEnabled() ? $this->encrypter->decrypt($value) : $value;
+            $value = $this->unserializeValue($this->isEncryptionEnabled() ? $this->encrypter->decrypt($value) : $value);
         } else {
             $value = $default;
         }
@@ -337,9 +347,11 @@ class Settings implements Repository
 
         $generatedKey = $this->getKey($key);
 
+        $serializedValue = $this->serializeValue($value);
+
         $this->repository->set(
             $generatedKey,
-            $this->isEncryptionEnabled()? $this->encrypter->encrypt($value) : $value
+            $this->isEncryptionEnabled()? $this->encrypter->encrypt($serializedValue) : $serializedValue
         );
 
         if ($this->isCacheEnabled()) {
@@ -383,6 +395,28 @@ class Settings implements Repository
     protected function getKey($key)
     {
         return $this->keyGenerator->generate($key, $this->context);
+    }
+
+    /**
+     * Unserialize given serialized value.
+     *
+     * @param mixed $serialized
+     * @return mixed
+     */
+    protected function unserializeValue($serialized)
+    {
+        return $this->valueSerializer->unserialize($serialized);
+    }
+
+    /**
+     * Serialize given value.
+     *
+     * @param mixed $value
+     * @return mixed
+     */
+    protected function serializeValue($value)
+    {
+        return $this->valueSerializer->serialize($value);
     }
 
     /**

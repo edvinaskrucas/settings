@@ -1,3 +1,11 @@
+# 1.2.0
+
+---
+
+* Added value serializer support.
+
+---
+
 # 1.1.0
 
 ---
