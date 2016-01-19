@@ -1,7 +1,6 @@
 <?php namespace Krucas\Settings\Console;
 
 use Illuminate\Console\Command;
-use Illuminate\Foundation\Composer;
 use Illuminate\Filesystem\Filesystem;
 
 class SettingsTableCommand extends Command
@@ -28,17 +27,17 @@ class SettingsTableCommand extends Command
     protected $files;
 
     /**
-     * @var \Illuminate\Foundation\Composer
+     * @var \Illuminate\Foundation\Composer|\Illuminate\Support\Composer
      */
     protected $composer;
 
     /**
      * Create a new settings table command instance.
      *
-     * @param \Illuminate\Filesystem\Filesystem $files
-     * @param \Illuminate\Foundation\Composer $composer
+     * @param \Illuminate\Filesystem\Filesystem                            $files
+     * @param \Illuminate\Foundation\Composer|\Illuminate\Support\Composer $composer
      */
-    public function __construct(Filesystem $files, Composer $composer)
+    public function __construct(Filesystem $files, $composer)
     {
         parent::__construct();
 
