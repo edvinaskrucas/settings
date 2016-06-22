@@ -52,7 +52,7 @@ class DatabaseRepository implements Repository
      */
     public function get($key, $default = null)
     {
-        $value = $this->table()->where('key', '=', $key)->value('value');
+        $value = unserialize($this->table()->where('key', '=', $key)->value('value'));
 
         return is_null($value) ? $default : $value;
     }
@@ -66,6 +66,8 @@ class DatabaseRepository implements Repository
      */
     public function set($key, $value = null)
     {
+        $value = serialize($value);
+
         try {
             $this->table()->insert(compact('key', 'value'));
         } catch (Exception $e) {
