@@ -431,7 +431,7 @@ class Settings implements Repository
         $payload[] = $this->context;
 
         if ($this->isEventsEnabled()) {
-            $this->dispatcher->fire("settings.{$event}: {$key}", $payload);
+            $this->dispatcher->dispatch("settings.{$event}: {$key}", $payload);
         }
     }
 }
