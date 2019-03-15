@@ -1,3 +1,5 @@
+**Package is looking for maintainers Please contact me if interested.**
+
 # Persistent Settings for Laravel 5
 
 [![Build Status](https://travis-ci.org/edvinaskrucas/settings.png?branch=master)](https://travis-ci.org/edvinaskrucas/settings)
