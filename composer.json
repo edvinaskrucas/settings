@@ -8,6 +8,18 @@
       "email": "edv.krucas@gmail.com"
     }
   ],
+
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Krucas\\Settings\\Providers\\SettingsServiceProvider"
+      ],
+      "aliases": {
+        "Settings": "Krucas\\Settings\\Facades\\Settings"
+      }
+    }
+  },
+
   "license": "MIT",
   "require": {
     "php" : "^7.2",
