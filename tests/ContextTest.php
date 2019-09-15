@@ -1,10 +1,11 @@
 <?php
 
 use Mockery as m;
+use PHPUnit\Framework\TestCase;
 
-class ContextTest extends PHPUnit_Framework_TestCase
+class ContextTest extends TestCase
 {
-    public function tearDown()
+    public function tearDown():void
     {
         m::close();
     }
@@ -37,11 +38,10 @@ class ContextTest extends PHPUnit_Framework_TestCase
         $this->assertFalse($context->has('test'));
     }
 
-    /**
-     * @expectedException \OutOfBoundsException
-     */
+
     public function testGetUndefinedContextArgument()
     {
+        $this->expectException(\OutOfBoundsException::class);
         $context = new \Krucas\Settings\Context();
         $context->get('test');
     }

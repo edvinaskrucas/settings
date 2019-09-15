@@ -1,10 +1,10 @@
 <?php
 
 use Mockery as m;
-
-class KeyGeneratorTest extends PHPUnit_Framework_TestCase
+use PHPUnit\Framework\TestCase;
+class KeyGeneratorTest extends TestCase
 {
-    public function tearDown()
+    public function tearDown():void
     {
         m::close();
     }
