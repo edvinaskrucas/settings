@@ -1,10 +1,10 @@
 <?php
 
 use Mockery as m;
-
-class ValueSerializerTest extends PHPUnit_Framework_TestCase
+use PHPUnit\Framework\TestCase;
+class ValueSerializerTest extends TestCase
 {
-    public function tearDown()
+    public function tearDown():void
     {
         m::close();
     }

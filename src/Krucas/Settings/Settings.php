@@ -249,7 +249,7 @@ class Settings implements Repository
     /**
      * Return event dispatcher instance.
      *
-     * @return \\Illuminate\Contracts\Events\Dispatcher|null
+     * @return \Illuminate\Contracts\Events\Dispatcher|null
      */
     public function getDispatcher()
     {
@@ -290,7 +290,6 @@ class Settings implements Repository
         $this->fire('checking', $key, [$key]);
 
         $status = $this->repository->has($this->getKey($key));
-
         $this->fire('has', $key, [$key, $status]);
 
         $this->context(null);
@@ -431,7 +430,7 @@ class Settings implements Repository
         $payload[] = $this->context;
 
         if ($this->isEventsEnabled()) {
-            $this->dispatcher->fire("settings.{$event}: {$key}", $payload);
+            $this->dispatcher->dispatch("settings.{$event}: {$key}", $payload);
         }
     }
 }

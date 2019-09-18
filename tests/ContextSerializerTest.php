@@ -1,10 +1,11 @@
 <?php
 
 use Mockery as m;
+use PHPUnit\Framework\TestCase;
 
-class ContextSerializerTest extends PHPUnit_Framework_TestCase
+class ContextSerializerTest extends TestCase
 {
-    public function tearDown()
+    public function tearDown():void
     {
         m::close();
     }
