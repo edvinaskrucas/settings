@@ -45,6 +45,16 @@ class SettingsTableCommand extends Command
         $this->files = $files;
         $this->composer = $composer;
     }
+    
+     /**
+     * Execute the console command.
+     *
+     * @return void
+     */
+    public function handle()
+    {
+        $this->fire();
+    }
 
     /**
      * Execute the console command.
